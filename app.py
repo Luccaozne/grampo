@@ -10,7 +10,9 @@ local, são processados aqui mesmo e o resultado é gravado na Downloads. Nada s
 
 import argparse
 import atexit
+import json
 import os
+import re
 import secrets
 import shutil
 import socket
@@ -44,6 +46,38 @@ class Sessao:
 
     def limpar(self):
         shutil.rmtree(self.pasta, ignore_errors=True)
+
+
+LIMITE_DE_ARQUIVOS = 500
+
+
+def ordem_natural(nome):
+    """"nota 2" antes de "nota 10", sem diferença de maiúsculas."""
+    return [(0, int(p), "") if p.isdigit() else (1, 0, p.lower()) for p in re.split(r"(\d+)", nome) if p]
+
+
+def expandir_caminhos(caminhos, aceita):
+    """Troca cada pasta pelos arquivos aceitos dentro dela (com subpastas). Devolve (arquivos, quantos de outro
+    tipo ficaram de fora, problemas para a tela)."""
+    arquivos, ignorados, problemas = [], 0, []
+    for bruto in caminhos:
+        caminho = Path(str(bruto))
+        if caminho.is_dir():
+            dentro = sorted((p for p in caminho.rglob("*") if p.is_file()),
+                            key=lambda p: [ordem_natural(parte) for parte in p.relative_to(caminho).parts])
+            servem = [p for p in dentro if not aceita or p.suffix.lower() in aceita]
+            ignorados += len(dentro) - len(servem)
+            if not servem:
+                problemas.append(f"A pasta “{caminho.name}” não tem nenhum arquivo que sirva nesta ferramenta.")
+            arquivos += servem
+        elif caminho.is_file():
+            if aceita and caminho.suffix.lower() not in aceita:
+                ignorados += 1
+            else:
+                arquivos.append(caminho)
+        else:
+            problemas.append(f"Não achei “{caminho.name}”. Ele pode ter sido movido ou apagado.")
+    return arquivos, ignorados, problemas
 
 
 def limpar_sobras():
@@ -91,28 +125,48 @@ def criar_app(sessao=None):
         saida.escolher_pasta_de_saida(caminho)
         return jsonify({"pasta": str(saida.pasta_de_saida())})
 
+    def registrar(nome, gravar):
+        """Guarda um arquivo na pasta temporária (`gravar(destino)` faz a cópia) e devolve o que a tela mostra."""
+        identificador = uuid.uuid4().hex
+        nome = saida.limpar_nome(Path(nome or "arquivo").name)
+        caminho = sessao.pasta / identificador / nome  # o temporário mantém o nome (o Office põe no PDF)
+        caminho.parent.mkdir()
+        gravar(caminho)
+        info = {"id": identificador, "nome": nome, "tamanho": caminho.stat().st_size}
+        if caminho.suffix.lower() == ".pdf":
+            if operacoes.tem_senha(caminho):
+                info["senha"] = True
+            else:
+                try:
+                    info["paginas"] = operacoes.contar_paginas(caminho)
+                except ErroAmigavel as e:
+                    info["problema"] = str(e)
+        with sessao.trava:
+            sessao.arquivos[identificador] = {"caminho": caminho, "nome": nome}
+        return info
+
     @app.post("/api/enviar")
     def enviar():
+        """A tela manda o conteúdo dos arquivos (no navegador; na janela própria usa /api/adicionar)."""
+        return jsonify([registrar(a.filename, a.save) for a in request.files.getlist("arquivos")])
+
+    @app.post("/api/adicionar")
+    def adicionar():
+        """Arquivos e pastas pelo caminho no disco (diálogo do Windows ou arrastados do Explorer, na janela própria).
+        Pasta vale por todos os arquivos aceitos dentro dela, em ordem de nome."""
+        pedido = request.get_json(silent=True) or {}
+        aceita = {e.lower() for e in pedido.get("aceita") or []}
+        arquivos, ignorados, problemas = expandir_caminhos(pedido.get("caminhos") or [], aceita)
         recebidos = []
-        for arquivo in request.files.getlist("arquivos"):
-            identificador = uuid.uuid4().hex
-            nome = saida.limpar_nome(Path(arquivo.filename or "arquivo").name)
-            caminho = sessao.pasta / identificador / nome  # o temporário mantém o nome (o Office põe no PDF)
-            caminho.parent.mkdir()
-            arquivo.save(caminho)
-            info = {"id": identificador, "nome": nome, "tamanho": caminho.stat().st_size}
-            if caminho.suffix.lower() == ".pdf":
-                if operacoes.tem_senha(caminho):
-                    info["senha"] = True
-                else:
-                    try:
-                        info["paginas"] = operacoes.contar_paginas(caminho)
-                    except ErroAmigavel as e:
-                        info["problema"] = str(e)
-            with sessao.trava:
-                sessao.arquivos[identificador] = {"caminho": caminho, "nome": nome}
-            recebidos.append(info)
-        return jsonify(recebidos)
+        for caminho in arquivos[:LIMITE_DE_ARQUIVOS]:
+            try:
+                recebidos.append(registrar(caminho.name, lambda destino, origem=caminho: shutil.copyfile(origem, destino)))
+            except OSError:
+                problemas.append(f"Não consegui ler “{caminho.name}”. Se ele está no OneDrive, abra a pasta dele, "
+                                 "espere terminar de baixar e tente de novo.")
+        if len(arquivos) > LIMITE_DE_ARQUIVOS:
+            problemas.append(f"Peguei só os {LIMITE_DE_ARQUIVOS} primeiros arquivos.")
+        return jsonify({"arquivos": recebidos, "ignorados": ignorados, "problemas": problemas})
 
     @app.get("/api/miniatura/<identificador>/<int:pagina>")
     def miniatura(identificador, pagina):
@@ -199,13 +253,50 @@ class ApiDaJanela:
     """O que a tela chama direto do Python quando está na janela própria (pywebview)."""
 
     def __init__(self):
-        self.janela = None
+        self._janela = None
+        self._ultima_pasta = ""  # o diálogo abre de novo onde a pessoa estava
 
     def escolher_pasta(self):
+        """A pasta onde o resultado é gravado."""
         import webview
 
-        escolha = self.janela.create_file_dialog(webview.FileDialog.FOLDER, directory=str(saida.pasta_de_saida()))
+        escolha = self._janela.create_file_dialog(webview.FileDialog.FOLDER, directory=str(saida.pasta_de_saida()))
         return escolha[0] if escolha else None
+
+    def escolher_arquivos(self, aceita, varios):
+        """Diálogo do Windows para escolher um ou vários arquivos (Ctrl ou Shift, ou Ctrl+A para todos)."""
+        import webview
+
+        tipos = ";".join("*" + e for e in aceita)
+        escolha = self._janela.create_file_dialog(
+            webview.FileDialog.OPEN, directory=self._ultima_pasta, allow_multiple=bool(varios),
+            file_types=(f"Arquivos que servem aqui ({tipos})", "Todos os arquivos (*.*)"))
+        if not escolha:
+            return []
+        self._ultima_pasta = str(Path(escolha[0]).parent)
+        return list(escolha)
+
+    def escolher_pasta_de_arquivos(self):
+        """Uma pasta inteira: a tela pega todos os arquivos que servem dentro dela."""
+        import webview
+
+        escolha = self._janela.create_file_dialog(webview.FileDialog.FOLDER, directory=self._ultima_pasta)
+        if not escolha:
+            return []
+        self._ultima_pasta = str(Path(escolha[0]))
+        return [escolha[0]]
+
+    def _ao_soltar(self, evento):
+        """Arquivos ou pastas soltos na janela: o pywebview dá o caminho completo de cada um, e a tela os adiciona."""
+        caminhos = [f.get("pywebviewFullPath") for f in (evento.get("dataTransfer") or {}).get("files", [])]
+        caminhos = [c for c in caminhos if c]
+        if caminhos:
+            self._janela.evaluate_js(f"window.receberCaminhos && window.receberCaminhos({json.dumps(caminhos)})")
+
+    def _ligar_arrastar(self):
+        from webview.dom import DOMEventHandler
+
+        self._janela.dom.document.events.drop += DOMEventHandler(self._ao_soltar, prevent_default=True)
 
 
 def porta_livre():
@@ -239,8 +330,9 @@ def main():
 
     threading.Thread(target=lambda: app.run(host="127.0.0.1", port=porta, threaded=True), daemon=True).start()
     api = ApiDaJanela()
-    api.janela = webview.create_window(NOME, endereco, js_api=api, width=1180, height=820, min_size=(760, 560),
+    api._janela = webview.create_window(NOME, endereco, js_api=api, width=1180, height=820, min_size=(760, 560),
                                        background_color="#F3F6FA")
+    api._janela.events.loaded += api._ligar_arrastar
     webview.start()
 
 

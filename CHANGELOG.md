@@ -1,5 +1,13 @@
 # O que mudou
 
+## 1.3.0
+
+- Escolher vários arquivos de uma vez ficou mais firme: na janela do Grampo, o botão abre o diálogo do Windows
+  (Ctrl ou Shift para vários, Ctrl+A para todos) e o Grampo copia direto do disco, mesmo arquivos do OneDrive.
+- Novo botão **Escolher uma pasta**, e dá para arrastar uma pasta inteira: entram todos os arquivos que servem,
+  em ordem de nome (com subpastas). Os de outro tipo ficam de fora, com aviso.
+- A lista ganhou **Ordenar por nome**, **Limpar lista** e **Tirar os com problema** (PDF com senha ou estragado).
+
 ## 1.2.0
 
 - Cores novas: a tela, o logo e o ícone passaram de verde para azul, no tema claro e no escuro.

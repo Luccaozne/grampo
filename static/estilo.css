@@ -170,7 +170,12 @@ button, input, select { font: inherit; color: inherit; }
 .soltar.compacto { min-height: 0; flex-direction: row; flex-wrap: wrap; padding: 14px; gap: 10px; margin-top: 12px; }
 .soltar.compacto svg { width: 22px; height: 22px; }
 .soltar.compacto strong { font-size: 15px; }
-.soltar.compacto small, .soltar.compacto > span:not(.botao) { display: none; }
+.soltar.compacto small, .soltar.compacto .soltar-ou { display: none; }
+.soltar.compacto .botao { padding: 7px 12px; }
+.soltar-botoes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.soltar small { max-width: 420px; }
+.lista-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 8px; }
+.lista-barra .contagem { color: var(--texto-suave); margin-right: auto; font-size: 14px; }
 
 .botao {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 16px; border-radius: 10px;
@@ -279,6 +284,7 @@ fieldset.campo { border: 0; padding: 0; margin: 0; }
 .resultado { border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 .resultado.ok { background: var(--ok-fundo); }
 .resultado.falhou { background: var(--erro-fundo); }
+.resultado.info { background: var(--aviso-fundo); border: 1px solid var(--aviso-borda); }
 .resultado h3 { display: flex; gap: 8px; align-items: center; font-size: 16px; }
 .resultado.ok h3 { color: var(--ok); }
 .resultado.falhou h3 { color: var(--erro); }

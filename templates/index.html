@@ -61,14 +61,20 @@
     <div id="f-aviso-programa" class="aviso" hidden></div>
     <div class="ferramenta-corpo">
       <section class="area-arquivos">
-        <label class="soltar" id="soltar">
+        <div class="soltar" id="soltar">
           <input type="file" id="escolher" hidden>
+          <input type="file" id="escolher-pasta" webkitdirectory multiple hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
           <strong id="soltar-titulo">Arraste os arquivos para cá</strong>
-          <span>ou</span>
-          <span class="botao" role="button">Escolher no computador</span>
+          <span class="soltar-ou">ou</span>
+          <div class="soltar-botoes">
+            <button class="botao principal" type="button" id="botao-arquivos">Escolher arquivos</button>
+            <button class="botao" type="button" id="botao-pasta-arquivos">Escolher uma pasta</button>
+          </div>
+          <small id="soltar-dica"></small>
           <small id="soltar-aceita"></small>
-        </label>
+        </div>
+        <div id="lista-barra" class="lista-barra" hidden></div>
         <div id="lista" class="lista" hidden></div>
         <div id="paginas" class="paginas-area" hidden>
           <div class="paginas-barra" id="paginas-barra"></div>

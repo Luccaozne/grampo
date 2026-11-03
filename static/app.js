@@ -161,7 +161,12 @@ function abrirFerramenta(f) {
   const entrada = $("#escolher");
   entrada.accept = f.aceita.join(",");
   entrada.multiple = !!f.varios;
-  $("#soltar-titulo").textContent = f.varios ? "Arraste os arquivos para cá" : "Arraste o arquivo para cá";
+  $("#soltar-titulo").textContent = f.varios ? "Arraste arquivos ou uma pasta para cá" : "Arraste o arquivo para cá";
+  $("#botao-arquivos").textContent = f.varios ? "Escolher arquivos" : "Escolher arquivo";
+  $("#botao-pasta-arquivos").hidden = !f.varios;
+  $("#soltar-dica").textContent = f.varios
+    ? "Para escolher vários de uma vez: segure Ctrl e clique em cada um, ou aperte Ctrl+A para todos da pasta."
+    : "";
   $("#soltar-aceita").textContent = "Aceita: " + f.aceita.map((e) => e.slice(1).toUpperCase()).join(", ");
   avisoDoPrograma();
   montarOpcoes(f);
@@ -248,17 +253,49 @@ function aceito(nome) {
   return estado.ferramenta.aceita.includes(ext);
 }
 
-function enviar(lista) {
+function nomesDosTipos() { return estado.ferramenta.aceita.map((e) => e.slice(1).toUpperCase()).join(", "); }
+
+function avisoDeIgnorados(quantos) {
+  return quantos ? `${plural(quantos, "arquivo de outro tipo ficou", "arquivos de outro tipo ficaram")} de fora ` +
+    `(esta ferramenta aceita: ${nomesDosTipos()}).` : "";
+}
+
+/** Junta o que chegou na lista da tela (ou troca, nas ferramentas de um arquivo só) e avisa o que ficou de fora. */
+function receber(recebidos, avisos) {
   const f = estado.ferramenta;
-  if (!f || estado.ocupado) return;
+  ocupar(false);
+  $("#andamento").hidden = true;
+  if (recebidos.length) {
+    estado.arquivos = f.varios ? estado.arquivos.concat(recebidos) : recebidos.slice(0, 1);
+    estado.terminou = false;
+    if (f.paginas) prepararPaginas();
+  }
+  const texto = avisos.filter(Boolean).join(" ");
+  if (texto && !recebidos.length) mostrarErro(texto);
+  else if (texto) mostrarAviso(texto);
+  else $("#resultado").hidden = true;
+  desenhar();
+}
+
+function avisarOcupado() { mostrarAviso("Espere terminar de carregar os arquivos e tente de novo."); }
+
+/** Navegador: a tela manda o conteúdo dos arquivos. */
+function enviar(lista, daPasta = false) {
+  const f = estado.ferramenta;
+  if (!f) return;
+  if (estado.ocupado) { avisarOcupado(); return; }
   let arquivos = [...lista];
   const recusados = arquivos.filter((a) => !aceito(a.name));
   arquivos = arquivos.filter((a) => aceito(a.name));
-  if (recusados.length) {
-    mostrarErro(`${recusados.map((a) => `“${a.name}”`).join(", ")} não ${recusados.length > 1 ? "servem" : "serve"} aqui. ` +
-      `Esta ferramenta aceita: ${f.aceita.map((e) => e.slice(1).toUpperCase()).join(", ")}.`);
+  const aviso = recusados.length && (daPasta || recusados.length > 3)
+    ? avisoDeIgnorados(recusados.length)
+    : recusados.length ? `${recusados.map((a) => `“${a.name}”`).join(", ")} não ${recusados.length > 1 ? "servem" : "serve"} aqui. ` +
+      `Esta ferramenta aceita: ${nomesDosTipos()}.` : "";
+  if (!arquivos.length) {
+    mostrarErro(aviso || (daPasta ? "A pasta não tem nenhum arquivo que sirva nesta ferramenta." : "Nenhum arquivo escolhido."));
+    return;
   }
-  if (!arquivos.length) return;
+  if (daPasta) arquivos.sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(b.webkitRelativePath || b.name, "pt-BR", { numeric: true }));
   if (!f.varios) arquivos = arquivos.slice(0, 1);
   const dados = new FormData();
   arquivos.forEach((a) => dados.append("arquivos", a, a.name));
@@ -269,18 +306,70 @@ function enviar(lista) {
   progresso(0, arquivos.length > 1 ? `Carregando ${arquivos.length} arquivos` : `Carregando ${arquivos[0].name}`);
   pedido.upload.onprogress = (e) => { if (e.lengthComputable) progresso(e.loaded / e.total * 0.95); };
   pedido.onload = () => {
+    if (pedido.status !== 200) { ocupar(false); $("#andamento").hidden = true; mostrarErro("Não consegui carregar os arquivos. Tente de novo."); return; }
+    receber(JSON.parse(pedido.responseText), [aviso]);
+  };
+  pedido.onerror = () => {
     ocupar(false);
     $("#andamento").hidden = true;
-    if (pedido.status !== 200) { mostrarErro("Não consegui carregar os arquivos. Tente de novo."); return; }
-    if (!recusados.length) $("#resultado").hidden = true;
-    const recebidos = JSON.parse(pedido.responseText);
-    estado.arquivos = f.varios ? estado.arquivos.concat(recebidos) : recebidos;
-    estado.terminou = false;
-    if (f.paginas) prepararPaginas();
-    desenhar();
+    mostrarErro("Não consegui ler os arquivos. Se eles estão no OneDrive, abra a pasta, espere terminar de baixar e tente de novo.");
   };
-  pedido.onerror = () => { ocupar(false); mostrarErro("Não consegui carregar os arquivos. Tente de novo."); };
   pedido.send(dados);
+}
+
+/** Janela própria: o Grampo copia direto do disco, pelo caminho (arquivos ou pastas inteiras). */
+async function adicionarCaminhos(caminhos) {
+  const f = estado.ferramenta;
+  if (!f || !caminhos || !caminhos.length) return;
+  if (estado.ocupado) { avisarOcupado(); return; }
+  ocupar(true);
+  progresso(0.3, caminhos.length > 1 ? `Carregando ${caminhos.length} itens` : `Carregando ${nomeDaPasta(caminhos[0])}`);
+  try {
+    const r = await api("/api/adicionar", { caminhos, aceita: f.aceita });
+    receber(r.arquivos, [avisoDeIgnorados(r.ignorados), ...r.problemas]);
+  } catch (erro) {
+    ocupar(false);
+    $("#andamento").hidden = true;
+    mostrarErro(erro.message);
+  }
+}
+
+// O Python manda os caminhos do que foi solto na janela (ver ApiDaJanela._ao_soltar)
+let esperaDoArraste = null;
+window.receberCaminhos = (caminhos) => {
+  if (esperaDoArraste) { clearTimeout(esperaDoArraste); esperaDoArraste = null; }
+  if (estado.ferramenta) adicionarCaminhos(caminhos);
+};
+
+/** Navegador: arquivos de dentro das pastas soltas (cada entrada de pasta é lida inteira, com subpastas). */
+async function arquivosDasEntradas(entradas) {
+  const arquivos = [];
+  const ler = (entrada) => new Promise((ok) => {
+    if (entrada.isFile) entrada.file((a) => { arquivos.push(a); ok(); }, () => ok());
+    else if (entrada.isDirectory) {
+      const leitor = entrada.createReader(), filhos = [];
+      const lote = () => leitor.readEntries(async (parte) => {
+        if (!parte.length) { for (const filho of filhos) await ler(filho); ok(); return; }
+        filhos.push(...parte); lote();
+      }, () => ok());
+      lote();
+    } else ok();
+  });
+  for (const entrada of entradas) await ler(entrada);
+  return arquivos;
+}
+
+async function escolherArquivos() {
+  const f = estado.ferramenta;
+  if (estado.ocupado) { avisarOcupado(); return; }
+  if (temJanela()) adicionarCaminhos(await window.pywebview.api.escolher_arquivos(f.aceita, !!f.varios));
+  else $("#escolher").click();
+}
+
+async function escolherPastaDeArquivos() {
+  if (estado.ocupado) { avisarOcupado(); return; }
+  if (temJanela()) adicionarCaminhos(await window.pywebview.api.escolher_pasta_de_arquivos());
+  else $("#escolher-pasta").click();
 }
 
 function prepararPaginas() {
@@ -313,10 +402,35 @@ function desenhar() {
   const soltar = $("#soltar");
   soltar.hidden = tem && !f.varios;
   soltar.classList.toggle("compacto", tem);
-  if (tem && f.varios) $("#soltar-titulo").textContent = "Adicionar mais arquivos";
+  $("#soltar-titulo").textContent = tem && f.varios ? "Adicionar mais"
+    : f.varios ? "Arraste arquivos ou uma pasta para cá" : "Arraste o arquivo para cá";
+  desenharBarraDaLista();
   desenharLista();
   desenharPaginas();
   atualizarBotao();
+}
+
+/** Acima da lista (ferramentas de vários arquivos): quantos são, ordenar por nome e limpar. */
+function desenharBarraDaLista() {
+  const f = estado.ferramenta, barra = $("#lista-barra"), n = estado.arquivos.length;
+  barra.hidden = !(f.varios && n > 1);
+  if (barra.hidden) return;
+  const paginas = estado.arquivos.reduce((soma, a) => soma + (a.paginas || 0), 0);
+  const comProblema = estado.arquivos.filter((a) => problemaDe(a)).length;
+  barra.innerHTML = `<span class="contagem">${plural(n, "arquivo", "arquivos")}${paginas ? ` · ${plural(paginas, "página", "páginas")}` : ""}${f.id === "juntar" ? " · arraste para mudar a ordem" : ""}</span>
+    ${comProblema ? `<button class="botao" type="button" data-acao="problemas">${comProblema === 1 ? "Tirar o arquivo com problema" : `Tirar os ${comProblema} com problema`}</button>` : ""}
+    <button class="botao" type="button" data-acao="nome">Ordenar por nome</button>
+    <button class="botao fantasma" type="button" data-acao="limpar">Limpar lista</button>`;
+  barra.onclick = (e) => {
+    const acao = e.target.closest("[data-acao]")?.dataset.acao;
+    if (!acao || estado.ocupado) return;
+    if (acao === "nome") estado.arquivos.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR", { numeric: true }));
+    if (acao === "problemas") estado.arquivos = estado.arquivos.filter((a) => !problemaDe(a));
+    if (acao === "limpar") estado.arquivos = [];
+    estado.terminou = false;
+    $("#resultado").hidden = true;
+    desenhar();
+  };
 }
 
 function desenharLista() {
@@ -528,7 +642,8 @@ function atualizarBotao() {
   botao.textContent = rotuloDoBotao(f);
   let motivo = "";
   if (!estado.arquivos.length) motivo = f.varios ? "Escolha os arquivos para começar." : "Escolha o arquivo para começar.";
-  else if (validos.length < estado.arquivos.length) motivo = "Tire da lista o arquivo com problema.";
+  else if (validos.length < estado.arquivos.length) motivo = f.varios && estado.arquivos.length > 1
+    ? "Tire da lista os arquivos com problema (botão acima da lista)." : "Tire da lista o arquivo com problema.";
   else if (validos.length < (f.minimo || 1)) motivo = `Escolha pelo menos ${f.minimo} arquivos.`;
   else if (f.precisa && ambiente.programas[f.precisa] === null) motivo = "Falta o Office ou o LibreOffice neste computador.";
   else if (f.paginas === "marcar" && !$('#opcoes input[name="paginas"]').value.trim()) motivo = "Marque as páginas.";
@@ -560,6 +675,13 @@ function mostrarErro(mensagem) {
   r.innerHTML = `<h3>${icone("erro")} Não deu certo</h3><p>${escapar(mensagem)}</p>`;
   r.hidden = false;
   r.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+function mostrarAviso(mensagem) {
+  const r = $("#resultado");
+  r.className = "resultado info";
+  r.innerHTML = `<h3>${icone("erro")} Atenção</h3><p>${escapar(mensagem)}</p>`;
+  r.hidden = false;
 }
 
 async function fazer() {
@@ -637,7 +759,7 @@ async function carregarAmbiente() {
   if (estado.ferramenta) { avisoDoPrograma(); atualizarBotao(); }
 }
 
-function temJanela() { return !!(window.pywebview && window.pywebview.api && window.pywebview.api.escolher_pasta); }
+function temJanela() { return !!(window.pywebview && window.pywebview.api && window.pywebview.api.escolher_arquivos); }
 
 $("#botao-pasta").addEventListener("click", () => {
   $("#caminho-pasta").textContent = ambiente.pasta;
@@ -684,6 +806,11 @@ $("#busca").addEventListener("keydown", (e) => {
 $("#voltar").addEventListener("click", () => { if (!estado.ocupado) location.hash = ""; });
 $(".marca").addEventListener("click", (e) => { e.preventDefault(); if (!estado.ocupado) location.hash = ""; });
 $("#escolher").addEventListener("change", (e) => { enviar(e.target.files); e.target.value = ""; });
+$("#escolher-pasta").addEventListener("change", (e) => { enviar(e.target.files, true); e.target.value = ""; });
+$("#botao-arquivos").addEventListener("click", (e) => { e.stopPropagation(); escolherArquivos(); });
+$("#botao-pasta-arquivos").addEventListener("click", (e) => { e.stopPropagation(); escolherPastaDeArquivos(); });
+// Clicar no espaço vazio da área também escolhe arquivos, como antes
+$("#soltar").addEventListener("click", (e) => { if (!e.target.closest("button")) escolherArquivos(); });
 $("#fazer").addEventListener("click", fazer);
 $("#opcoes").addEventListener("input", (e) => {
   if (e.target.name === "paginas" && estado.arquivos[0]?.paginas) {
@@ -714,7 +841,19 @@ window.addEventListener("drop", (e) => {
   e.preventDefault();
   contadorArraste = 0;
   document.body.classList.remove("arrastando");
-  if (estado.ferramenta) enviar(e.dataTransfer.files);
+  if (!estado.ferramenta) return;
+  // As entradas só podem ser lidas durante o evento: guarda agora, usa depois se precisar
+  const entradas = [...e.dataTransfer.items].map((i) => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  const soltos = [...e.dataTransfer.files];
+  const pelaTela = async () => {
+    const temPasta = entradas.some((x) => x.isDirectory);
+    enviar(temPasta ? await arquivosDasEntradas(entradas) : soltos, temPasta);
+  };
+  if (temJanela()) {
+    // Na janela própria o Python manda os caminhos (window.receberCaminhos); se não mandar, vai pela tela
+    clearTimeout(esperaDoArraste);
+    esperaDoArraste = setTimeout(() => { esperaDoArraste = null; pelaTela(); }, 1500);
+  } else pelaTela();
 });
 
 window.addEventListener("hashchange", rota);

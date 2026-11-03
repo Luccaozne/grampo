@@ -79,6 +79,39 @@ def test_erro_vira_mensagem_simples(cliente, exemplos):
     assert "nenhuma página" in situacao["erro"]
 
 
+def test_adicionar_pasta_pega_so_os_que_servem_em_ordem_de_nome(cliente, exemplos, tmp_path):
+    pasta = tmp_path / "Notas de março"
+    (pasta / "sub").mkdir(parents=True)
+    for nome in ("nota 10.pdf", "nota 2.pdf", "Nota 1.pdf"):
+        (pasta / nome).write_bytes((exemplos / "anexo.pdf").read_bytes())
+    (pasta / "sub" / "nota 3.pdf").write_bytes((exemplos / "anexo.pdf").read_bytes())
+    (pasta / "leia-me.txt").write_text("x")
+    resposta = cliente.post("/api/adicionar", headers={"X-Grampo": cliente.chave},
+                            json={"caminhos": [str(pasta)], "aceita": [".pdf"]}).get_json()
+    assert [a["nome"] for a in resposta["arquivos"]] == ["Nota 1.pdf", "nota 2.pdf", "nota 10.pdf", "nota 3.pdf"]
+    assert all(a["paginas"] == 2 for a in resposta["arquivos"])
+    assert resposta["ignorados"] == 1 and resposta["problemas"] == []
+
+
+def test_adicionar_arquivos_e_o_que_nao_existe(cliente, exemplos, tmp_path):
+    vazia = tmp_path / "vazia"
+    vazia.mkdir()
+    resposta = cliente.post("/api/adicionar", headers={"X-Grampo": cliente.chave}, json={
+        "caminhos": [str(exemplos / "relatorio.pdf"), str(exemplos / "foto1.jpg"), str(tmp_path / "sumiu.pdf"),
+                     str(vazia)], "aceita": [".pdf"]}).get_json()
+    assert [a["nome"] for a in resposta["arquivos"]] == ["relatorio.pdf"]
+    assert resposta["ignorados"] == 1
+    assert any("sumiu.pdf" in p for p in resposta["problemas"])
+    assert any("não tem nenhum arquivo" in p for p in resposta["problemas"])
+    # a cópia fica na pasta temporária: o original não é usado nem mexido
+    identificador = resposta["arquivos"][0]["id"]
+    assert cliente.application.sessao.arquivos[identificador]["caminho"] != exemplos / "relatorio.pdf"
+
+
+def test_adicionar_exige_a_chave(cliente, exemplos):
+    assert cliente.post("/api/adicionar", json={"caminhos": [str(exemplos)]}).status_code == 403
+
+
 def test_so_abre_o_que_o_grampo_gravou(cliente):
     resposta = cliente.post("/api/abrir", headers={"X-Grampo": cliente.chave},
                             json={"caminho": r"C:\Windows\System32\calc.exe"})
