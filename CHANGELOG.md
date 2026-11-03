@@ -1,5 +1,9 @@
 # O que mudou
 
+## 1.2.0
+
+- Cores novas: a tela, o logo e o ícone passaram de verde para azul, no tema claro e no escuro.
+
 ## 1.1.0
 
 - Novo: **PDF para Excel**. Acha as tabelas (com ou sem linhas de grade) e transforma os valores em reais em

@@ -23,7 +23,7 @@ Cada ferramenta é um cartão na tela inicial:
 1. Abra o Grampo (atalho no menu Iniciar ou na Área de Trabalho).
 2. Clique na ferramenta que você quer. Se não achar, escreva na busca ("juntar", "senha", "Word"…).
 3. Arraste os arquivos para a tela ou clique em **Escolher no computador**.
-4. Escolha as opções do lado direito e clique no botão verde.
+4. Escolha as opções do lado direito e clique no botão azul.
 5. Pronto: o arquivo novo fica na pasta **Downloads**. Clique em **Abrir** ou em **Mostrar na pasta**.
 
 Algumas coisas que é bom saber:

@@ -1,4 +1,4 @@
-"""Desenha o ícone do Grampo (folha verde com o grampo dourado) em grampo.ico, nos tamanhos que o Windows usa.
+"""Desenha o ícone do Grampo (folha azul com o grampo dourado) em grampo.ico, nos tamanhos que o Windows usa.
 
   .venv\\Scripts\\python.exe instalador\\gerar_icone.py
 """
@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-VERDE, DOURADO, LINHA = (29, 107, 95, 255), (231, 176, 79, 255), (255, 255, 255, 140)
+AZUL, DOURADO, LINHA = (31, 94, 194, 255), (231, 176, 79, 255), (255, 255, 255, 140)
 
 
 def desenhar(lado=256):
@@ -15,7 +15,7 @@ def desenhar(lado=256):
     s = lambda v: round(v * escala)  # noqa: E731
     imagem = Image.new("RGBA", (lado, lado), (0, 0, 0, 0))
     d = ImageDraw.Draw(imagem)
-    d.rounded_rectangle([0, 0, lado - 1, lado - 1], radius=s(11), fill=VERDE)
+    d.rounded_rectangle([0, 0, lado - 1, lado - 1], radius=s(11), fill=AZUL)
     for y, fim in ((15, 28), (21, 28), (27, 22)):
         d.line([(s(12), s(y)), (s(fim), s(y))], fill=LINHA, width=max(1, s(2.4)))
     grossura = max(2, s(3.6))

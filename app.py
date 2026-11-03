@@ -240,7 +240,7 @@ def main():
     threading.Thread(target=lambda: app.run(host="127.0.0.1", port=porta, threaded=True), daemon=True).start()
     api = ApiDaJanela()
     api.janela = webview.create_window(NOME, endereco, js_api=api, width=1180, height=820, min_size=(760, 560),
-                                       background_color="#F6F4EF")
+                                       background_color="#F3F6FA")
     webview.start()
 
 

@@ -1,15 +1,15 @@
-/* Grampo: papel claro e verde-tinta, com o dourado do grampo de detalhe. Sem fontes da internet. */
+/* Grampo: papel claro e azul-caneta, com o dourado do grampo de detalhe. Sem fontes da internet. */
 :root {
-  --fundo: #F6F4EF;
+  --fundo: #F3F6FA;
   --superficie: #FFFFFF;
-  --superficie-2: #FBFAF7;
-  --texto: #1E2420;
-  --texto-suave: #5C645E;
-  --borda: #E2DED4;
-  --borda-forte: #CFC9BC;
-  --primaria: #1D6B5F;
-  --primaria-forte: #145148;
-  --primaria-clara: #E3F0EC;
+  --superficie-2: #F8FAFD;
+  --texto: #1A2233;
+  --texto-suave: #586379;
+  --borda: #DCE3ED;
+  --borda-forte: #C3CEDD;
+  --primaria: #1F5EC2;
+  --primaria-forte: #174A9B;
+  --primaria-clara: #E3ECFA;
   --sobre-primaria: #FFFFFF;
   --dourado: #C98A1E;
   --ok: #217A4B;
@@ -18,40 +18,40 @@
   --erro-fundo: #FBEAE8;
   --aviso-fundo: #FDF4E1;
   --aviso-borda: #EBCB8B;
-  --sombra: 0 1px 2px rgba(30, 36, 32, .06), 0 4px 14px rgba(30, 36, 32, .06);
-  --sombra-alta: 0 2px 4px rgba(30, 36, 32, .08), 0 12px 28px rgba(30, 36, 32, .12);
+  --sombra: 0 1px 2px rgba(26, 34, 51, .06), 0 4px 14px rgba(26, 34, 51, .06);
+  --sombra-alta: 0 2px 4px rgba(26, 34, 51, .08), 0 12px 28px rgba(26, 34, 51, .12);
   /* cor de cada grupo de ferramentas: [traço, fundo] */
-  --g-organizar: #1D6B5F; --g-organizar-f: #E3F0EC;
+  --g-organizar: #1F5EC2; --g-organizar-f: #E3ECFA;
   --g-editar: #B7791F; --g-editar-f: #FBF0DC;
-  --g-para_pdf: #2F62C4; --g-para_pdf-f: #E5EDFB;
-  --g-do_pdf: #7450C0; --g-do_pdf-f: #EFE9FA;
+  --g-para_pdf: #0E7C8C; --g-para_pdf-f: #E0F3F5;
+  --g-do_pdf: #6A4FC4; --g-do_pdf-f: #EEEAFB;
   --g-seguranca: #A8475E; --g-seguranca-f: #F8E6EA;
   --raio: 14px;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --fundo: #121614; --superficie: #1B201D; --superficie-2: #171C19; --texto: #E9ECE8; --texto-suave: #A2ABA4;
-    --borda: #2B332E; --borda-forte: #3B4540; --primaria: #4DB6A3; --primaria-forte: #6CCBB9; --primaria-clara: #1D3631;
-    --sobre-primaria: #0E1A17; --dourado: #E7B04F; --ok: #5CC28A; --ok-fundo: #173126; --erro: #F08A80;
+    --fundo: #10141C; --superficie: #181E2A; --superficie-2: #141A24; --texto: #E7ECF4; --texto-suave: #A0AABC;
+    --borda: #283142; --borda-forte: #384357; --primaria: #6A9EF5; --primaria-forte: #8DB5F8; --primaria-clara: #1B2A45;
+    --sobre-primaria: #0B1426; --dourado: #E7B04F; --ok: #5CC28A; --ok-fundo: #173126; --erro: #F08A80;
     --erro-fundo: #3A1D1A; --aviso-fundo: #35290F; --aviso-borda: #6B5320;
     --sombra: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 14px rgba(0, 0, 0, .25);
     --sombra-alta: 0 2px 4px rgba(0, 0, 0, .35), 0 12px 28px rgba(0, 0, 0, .4);
-    --g-organizar: #5CC4B1; --g-organizar-f: #1C3430; --g-editar: #E7B04F; --g-editar-f: #352A14;
-    --g-para_pdf: #7FA6F0; --g-para_pdf-f: #1C2A44; --g-do_pdf: #B29BEC; --g-do_pdf-f: #2A2340;
+    --g-organizar: #6A9EF5; --g-organizar-f: #1B2A45; --g-editar: #E7B04F; --g-editar-f: #352A14;
+    --g-para_pdf: #56C3D1; --g-para_pdf-f: #14323A; --g-do_pdf: #B29BEC; --g-do_pdf-f: #2A2340;
     --g-seguranca: #E58DA2; --g-seguranca-f: #3B2028;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --fundo: #121614; --superficie: #1B201D; --superficie-2: #171C19; --texto: #E9ECE8; --texto-suave: #A2ABA4;
-  --borda: #2B332E; --borda-forte: #3B4540; --primaria: #4DB6A3; --primaria-forte: #6CCBB9; --primaria-clara: #1D3631;
-  --sobre-primaria: #0E1A17; --dourado: #E7B04F; --ok: #5CC28A; --ok-fundo: #173126; --erro: #F08A80;
+  --fundo: #10141C; --superficie: #181E2A; --superficie-2: #141A24; --texto: #E7ECF4; --texto-suave: #A0AABC;
+  --borda: #283142; --borda-forte: #384357; --primaria: #6A9EF5; --primaria-forte: #8DB5F8; --primaria-clara: #1B2A45;
+  --sobre-primaria: #0B1426; --dourado: #E7B04F; --ok: #5CC28A; --ok-fundo: #173126; --erro: #F08A80;
   --erro-fundo: #3A1D1A; --aviso-fundo: #35290F; --aviso-borda: #6B5320;
   --sombra: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 14px rgba(0, 0, 0, .25);
   --sombra-alta: 0 2px 4px rgba(0, 0, 0, .35), 0 12px 28px rgba(0, 0, 0, .4);
-  --g-organizar: #5CC4B1; --g-organizar-f: #1C3430; --g-editar: #E7B04F; --g-editar-f: #352A14;
-  --g-para_pdf: #7FA6F0; --g-para_pdf-f: #1C2A44; --g-do_pdf: #B29BEC; --g-do_pdf-f: #2A2340;
+  --g-organizar: #6A9EF5; --g-organizar-f: #1B2A45; --g-editar: #E7B04F; --g-editar-f: #352A14;
+  --g-para_pdf: #56C3D1; --g-para_pdf-f: #14323A; --g-do_pdf: #B29BEC; --g-do_pdf-f: #2A2340;
   --g-seguranca: #E58DA2; --g-seguranca-f: #3B2028;
   color-scheme: dark;
 }
