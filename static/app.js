@@ -455,6 +455,7 @@ function desenharLista() {
         <button class="mini-botao" type="button" data-acao="tirar" title="${f.varios ? "Tirar da lista" : "Trocar o arquivo"}">${icone("fechar")}</button>
       </div>`;
     item.addEventListener("click", (e) => {
+      if (a.paginas && e.target.closest(".item-capa")) return abrirVisualizacao(i);
       const acao = e.target.closest("[data-acao]")?.dataset.acao;
       if (!acao || estado.ocupado) return;
       if (acao === "tirar") estado.arquivos.splice(i, 1);
@@ -468,6 +469,53 @@ function desenharLista() {
     if (ordenavel) arrastarParaOrdenar(item, i, estado.arquivos, desenhar);
     lista.appendChild(item);
   });
+}
+
+// Clicar na miniatura abre a primeira página em tamanho grande, para reconhecer o documento.
+// Setas do teclado (ou os botões) passam para o arquivo anterior/seguinte da lista.
+let vendo = -1;
+function abrirVisualizacao(i) {
+  let d = $("#visualizador");
+  if (!d) {
+    d = document.createElement("dialog");
+    d.id = "visualizador";
+    d.className = "visualizador";
+    d.innerHTML = `
+      <div class="visualizador-topo">
+        <div class="visualizador-titulo"><strong id="vis-nome"></strong><span id="vis-posicao"></span></div>
+        <button class="mini-botao" type="button" id="vis-fechar" title="Fechar (Esc)">${icone("fechar")}</button>
+      </div>
+      <div class="visualizador-corpo">
+        <button class="mini-botao vis-seta" type="button" id="vis-anterior" title="Arquivo anterior (seta para a esquerda)">${icone("esquerda")}</button>
+        <img id="vis-imagem" alt="">
+        <button class="mini-botao vis-seta" type="button" id="vis-proximo" title="Próximo arquivo (seta para a direita)">${icone("direita")}</button>
+      </div>`;
+    document.body.appendChild(d);
+    d.addEventListener("click", (e) => { if (e.target === d) d.close(); });
+    $("#vis-fechar").onclick = () => d.close();
+    $("#vis-anterior").onclick = () => mostrarVisualizacao(vendo - 1);
+    $("#vis-proximo").onclick = () => mostrarVisualizacao(vendo + 1);
+    d.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") { e.preventDefault(); mostrarVisualizacao(vendo - 1); }
+      if (e.key === "ArrowRight") { e.preventDefault(); mostrarVisualizacao(vendo + 1); }
+    });
+    d.addEventListener("close", () => { vendo = -1; $("#vis-imagem").removeAttribute("src"); });
+  }
+  if (!d.open) d.showModal();
+  mostrarVisualizacao(i);
+}
+
+function mostrarVisualizacao(i) {
+  const total = estado.arquivos.length;
+  if (i < 0 || i >= total) return;
+  const a = estado.arquivos[i];
+  vendo = i;
+  $("#vis-nome").textContent = a.nome;
+  $("#vis-posicao").textContent = `Arquivo ${i + 1} de ${total}` + (a.paginas > 1 ? ` · ${a.paginas} páginas (mostrando a 1ª)` : "");
+  $("#vis-imagem").alt = `Primeira página de ${a.nome}`;
+  $("#vis-imagem").src = `/api/miniatura/${a.id}/0?largura=1100`;
+  $("#vis-anterior").disabled = i === 0;
+  $("#vis-proximo").disabled = i === total - 1;
 }
 
 function mover(lista, de, para) {
