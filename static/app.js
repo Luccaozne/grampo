@@ -65,6 +65,21 @@ function tamanho(bytes) {
 function plural(n, um, varios) { return `${n} ${n === 1 ? um : varios}`; }
 function nomeDaPasta(caminho) { return caminho.split(/[\\/]/).filter(Boolean).pop() || caminho; }
 
+// Versão nova baixada em segundo plano: avisa que ela entra sozinha quando o Grampo for fechado.
+async function olharAtualizacao(vezes = 0) {
+  try {
+    const r = await (await fetch("/api/atualizacao")).json();
+    if (r.versao && r.pronta) {
+      const aviso = $("#aviso-atualizacao");
+      aviso.innerHTML = `<span>Versão ${escapar(r.versao)} pronta: instala quando você fechar o Grampo</span>`;
+      aviso.hidden = false;
+      return;
+    }
+  } catch (e) { /* sem resposta, tenta de novo daqui a pouco */ }
+  if (vezes < 40) setTimeout(() => olharAtualizacao(vezes + 1), 30000);
+}
+olharAtualizacao();
+
 async function api(url, dados) {
   const resposta = await fetch(url, {
     method: "POST", headers: { "Content-Type": "application/json", "X-Grampo": G.chave },

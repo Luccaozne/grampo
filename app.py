@@ -26,7 +26,7 @@ from pathlib import Path
 
 from flask import Flask, abort, jsonify, render_template, request, send_file
 
-from grampo import NOME, VERSAO, conversao, ferramentas, operacoes, saida
+from grampo import NOME, VERSAO, atualizacao, conversao, ferramentas, operacoes, saida
 from grampo.erros import ErroAmigavel
 
 # No programa montado (PyInstaller) as telas ficam dentro do pacote
@@ -116,6 +116,10 @@ def criar_app(sessao=None):
     def ambiente():
         return jsonify({"pasta": str(saida.pasta_de_saida()), "padrao": str(saida.pasta_downloads()),
                         "programas": conversao.programas_disponiveis()})
+
+    @app.get("/api/atualizacao")
+    def atualizacao_pendente():
+        return jsonify(atualizacao.situacao())
 
     @app.post("/api/pasta")
     def trocar_pasta():
@@ -314,6 +318,8 @@ def main():
 
     limpar_sobras()
     conversao.devolver_impressora()
+    if not (args.sem_janela or args.navegador):
+        atualizacao.comecar()
     sessao = Sessao()
     atexit.register(sessao.limpar)
     app = criar_app(sessao)
@@ -334,6 +340,7 @@ def main():
                                        background_color="#F3F6FA")
     api._janela.events.loaded += api._ligar_arrastar
     webview.start()
+    atualizacao.instalar_ao_fechar()  # janela fechada: se baixou versão nova, instala agora, sem janelas
 
 
 if __name__ == "__main__":

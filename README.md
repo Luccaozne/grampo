@@ -54,6 +54,12 @@ Baixe o `Grampo-<versão>.exe` na página **Releases** do repositório no GitHub
 está usando o Windows, sem pedir senha de administrador, cria o atalho no menu Iniciar e já abre o programa. Não
 precisa de Python nem de internet depois de instalado.
 
+Depois de instalado, o Grampo **se atualiza sozinho**: ao abrir, consulta a última Release do GitHub (só isso sai
+do computador, nenhum arquivo seu), baixa o `Grampo-<versão>.exe`, confere o SHA-256 que o GitHub publica e instala em
+silêncio quando você fecha o programa. Para liberar uma versão para todos: suba `VERSAO` em `grampo/__init__.py`,
+monte com `instalador\montar.py` e publique uma Release `v<versão>` com o `Grampo-<versão>.exe` anexado. Versões
+antes da 1.5.0 não têm isso e precisam ser reinstaladas uma vez à mão.
+
 Para instalar sem perguntas: `Grampo-1.1.0.exe /SILENT`.
 
 ## Para a TI

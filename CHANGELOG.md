@@ -1,5 +1,12 @@
 # O que mudou
 
+## 1.5.0
+
+- **O Grampo se atualiza sozinho.** Ao abrir, ele olha se há versão nova nas Releases do GitHub, baixa em segundo
+  plano, confere o arquivo (SHA-256) e instala quando você fecha o programa. No topo aparece o aviso de que a
+  versão nova está pronta. Sem internet, nada acontece e o programa funciona igual.
+- Inclui o visualizador da primeira página ao clicar na miniatura (que ia sair na 1.4.0, não publicada).
+
 ## 1.4.0
 
 - Clicar na miniatura de um arquivo na lista abre a primeira página em tamanho grande, no meio da tela, para
