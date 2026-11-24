@@ -203,6 +203,8 @@ button, input, select { font: inherit; color: inherit; }
   width: 40px; height: 52px; border-radius: 6px; border: 1px solid var(--borda); background: #fff center/cover no-repeat;
   display: grid; place-items: center; font-size: 11px; font-weight: 700; color: var(--texto-suave); flex: none;
 }
+.item-capa[style] { cursor: zoom-in; }
+.item-capa[style]:hover { border-color: var(--primaria); box-shadow: 0 0 0 2px var(--primaria-clara); }
 .item-info { flex: 1; min-width: 0; }
 .item-nome { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item-detalhe { color: var(--texto-suave); font-size: 13px; }
@@ -305,6 +307,21 @@ fieldset.campo { border: 0; padding: 0; margin: 0; }
 .caminho { font-family: Consolas, monospace; font-size: 13px; padding: 10px 12px; background: var(--fundo); border-radius: 10px; word-break: break-all; }
 .dialogo .dica { text-align: left; margin: 12px 0; }
 .dialogo-acoes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+/* visualizador da primeira página */
+.visualizador {
+  border: 1px solid var(--borda); border-radius: 18px; padding: 0; background: var(--superficie); color: var(--texto);
+  box-shadow: var(--sombra-alta); width: min(900px, calc(100vw - 32px)); max-height: calc(100vh - 32px);
+}
+.visualizador[open] { display: flex; flex-direction: column; }
+.visualizador::backdrop { background: rgba(10, 14, 12, .6); }
+.visualizador-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--borda); }
+.visualizador-titulo { min-width: 0; display: flex; flex-direction: column; }
+.visualizador-titulo strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.visualizador-titulo span { color: var(--texto-suave); font-size: 13px; }
+.visualizador-corpo { display: flex; align-items: center; gap: 8px; padding: 12px; min-height: 0; overflow: auto; background: var(--fundo); }
+.visualizador-corpo img { flex: 1; min-width: 0; max-width: 100%; max-height: calc(100vh - 150px); object-fit: contain; background: #fff; border-radius: 6px; box-shadow: var(--sombra); }
+.vis-seta { width: 40px; height: 56px; flex: none; }
 
 @media (max-width: 560px) {
   .chip span { display: none; }

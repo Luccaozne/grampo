@@ -1,5 +1,11 @@
 # O que mudou
 
+## 1.4.0
+
+- Clicar na miniatura de um arquivo na lista abre a primeira página em tamanho grande, no meio da tela, para
+  reconhecer qual documento é qual antes de colocar na ordem. As setas do teclado (ou os botões) passam para o
+  arquivo anterior e o seguinte; Esc fecha.
+
 ## 1.3.0
 
 - Escolher vários arquivos de uma vez ficou mais firme: na janela do Grampo, o botão abre o diálogo do Windows
